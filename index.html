@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' http://localhost:3000 https://*.fovea.cc https://*.iaptic.com 'unsafe-eval' 'unsafe-inline' gap:; style-src 'self' 'unsafe-inline'; media-src *">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="css/w3.css">
+  <link rel="stylesheet" href="css/w3-theme-black.css">
+  <link rel="stylesheet" href="css/font-awesome.css">
+  <style>
+    .subscription-box {
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  </style>
+
+</head>
+<body>
+  <script type="text/javascript" src="cordova.js"></script>
+  <script>
+    if (typeof window.exports === 'undefined') window.exports = {};
+    if (typeof window.require === 'undefined') window.require = function(){};
+  </script>
+  <script type="module" src="js/index.js"></script>
+</body>
+</html>
