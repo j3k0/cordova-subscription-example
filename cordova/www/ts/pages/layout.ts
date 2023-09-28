@@ -1,10 +1,10 @@
-import {State} from '../state.js';
-import {HTML} from '../html.js';
+import { State } from '../state.js';
+import { HTML } from '../html.js';
 
 export class Layout {
 
   static rootLayout(content: string, state: State) {
-    const contentString = HTML.div(content, {className: "w3-container"});
+    const contentString = HTML.div(content, { className: "w3-container" });
     if (state.error) {
       return HTML.toString([
         HTML.div(
@@ -27,8 +27,8 @@ export class Layout {
 
   private static menu(): string {
     return HTML.div([
-      HTML.button('Home', { onclick: "app.open('home')", className: "w3-button" }),
+      HTML.button('Content', { onclick: "app.open('home')", className: "w3-button" }),
       HTML.button('Store', { onclick: "app.open('store')", className: "w3-button" })
-    ], {className: 'w3-container w3-black w3-padding-small'});
+    ], { className: 'w3-container w3-black w3-padding-small' });
   }
 }

@@ -40,7 +40,7 @@ export class StorePage {
         HTML.h2(product.title?.toUpperCase() ?? null, { className: "w3-section w3-white" }),
         HTML.div(product.description ?? null, { className: "w3-section" }),
         renderOffers(product),
-      ], { className: "w3-container w3-black w3-center w3-section" }))) || 'No products are available',
+      ], { className: "subscription-box w3-container w3-black w3-center w3-section" }))) || 'No products are available',
 
       HTML.div('<a href="#">Terms and Conditions</a>', {className: "w3-section w3-center"}),
 
