@@ -4,6 +4,9 @@ import { Layout } from './layout.js';
 
 export class StorePage {
 
+  /**
+   * Display "subscription details" if there an active subscription, "subscribe" page if not.
+   */
   static render(state: State) {
     if (state.activeSubscription) {
       return StorePage.subscriptionDetails(state);
@@ -13,6 +16,9 @@ export class StorePage {
     }
   }
 
+  /**
+   * Display the list of available products
+   */
   static subscribe(state: State): string {
 
     return Layout.menuLayout(HTML.toString([
@@ -24,32 +30,67 @@ export class StorePage {
 
       // Info when an order is being processed
       state.isProcessingOrder
-        ? HTML.p('Please wait: PROCESSING ORDER...', { className: "w3-panel w3-blue" })
+        ? HTML.div('Please wait: PROCESSING ORDER...', { className: "w3-panel w3-blue" })
         : null,
 
+      // There's an expired subscription in our receipt, show the expiry date
       state.expiredSubscription?.expiryDate
         ? HTML.div(`Your subscription expired on ${new Date(state.expiredSubscription.expiryDate).toISOString()}.`, {className: 'w3-panel w3-red'})
         : null,
 
-      //
+      // Styling...
       HTML.h1("Unlock Premium Feature", {className: "w3-section w3-blue w3-center"}),
       HTML.div("Pick the plan that's best for you.", {className: "w3-section w3-center"}),
 
       // List of available products
-      ...(state.products.map(product => HTML.div([
-        HTML.h2(product.title?.toUpperCase() ?? null, { className: "w3-section w3-white" }),
-        HTML.div(product.description ?? null, { className: "w3-section" }),
-        renderOffers(product),
-      ], { className: "subscription-box w3-container w3-black w3-center w3-section" }))) || 'No products are available',
+      ...state.products.map(p => StorePage.renderProduct(p))
+      || HTML.div('No products are available.', { className: "w3-panel w3-orange" }),
 
+      // Styling
       HTML.div('<a href="#">Terms and Conditions</a>', {className: "w3-section w3-center"}),
 
       // Restore purchases and refresh buttons
       HTML.div([
-        HTML.button("Restore Purchases", { onclick: "app.subscriptionService.restorePurchases()", className: "w3-button w3-blue" }),
-        HTML.button("Refresh Prices", { onclick: "app.subscriptionService.update()", className: "w3-button w3-blue" }),
+        HTML.button("Restore Purchases", {
+          onclick: () => window.app.subscriptionService.restorePurchases(),
+          className: "w3-button w3-blue"
+        }),
+        HTML.button("Refresh Prices", {
+          onclick: () => window.app.subscriptionService.update(),
+          className: "w3-button w3-blue"
+        }),
       ], { className: "w3-container w3-section w3-black w3-padding-small w3-center" })
     ]), state);
+  }
+
+  static renderProduct(product: CdvPurchase.Product): string {
+    return HTML.div([
+      HTML.h2(product.title?.toUpperCase() ?? null, { className: "w3-section w3-white" }),
+      HTML.div(product.description ?? null, { className: "w3-section" }),
+      StorePage.renderOffers(product),
+    ], { className: "subscription-box w3-container w3-black w3-center w3-section" });
+  }
+
+  static renderOffers(product: CdvPurchase.Product) {
+    return product.offers ? HTML.div(product.offers.map(offer => {
+      return HTML.div([
+
+        HTML.div((offer.pricingPhases || []).map(pricingPhase => {
+          return HTML.b(pricingPhase.price)
+            + (product.type === CdvPurchase.ProductType.PAID_SUBSCRIPTION
+              ? ` (${CdvPurchase.Utils.formatBillingCycleEN(pricingPhase)})`
+              : '');
+        }).join(' then ')),
+
+        // add the "Buy" button that calls `orderOffer`
+        offer.canPurchase
+          ? HTML.button("SUBSCRIBE", {
+            onclick: `window.app.subscribe('${offer.platform}', '${offer.productId}', '${offer.id}')`,
+            className: "w3-button w3-red"
+          })
+          : HTML.div('(this offer cannot be purchased)')
+      ], { className: "w3-section w3-white w3-padding-small" });
+    }).join(''), { className: "w3-section" }) : '';
   }
 
   static subscriptionDetails(state: State): string {
@@ -96,26 +137,4 @@ export class StorePage {
       }),
     ], { className: "w3-container w3-center" }), state);
   }
-}
-
-const renderOffers = (product: CdvPurchase.Product) => {
-  return product.offers ? HTML.div(product.offers.map(offer => {
-    return HTML.div([
-
-      HTML.div((offer.pricingPhases || []).map(pricingPhase => {
-        return HTML.b(pricingPhase.price)
-          + (product.type === CdvPurchase.ProductType.PAID_SUBSCRIPTION
-            ? ` (${CdvPurchase.Utils.formatBillingCycleEN(pricingPhase)})`
-            : '');
-      }).join(' then ')),
-
-      // add the "Buy" button that calls `orderOffer`
-      offer.canPurchase
-        ? HTML.button("SUBSCRIBE", {
-          onclick: `app.subscribe('${offer.platform}', '${offer.productId}', '${offer.id}')`,
-          className: "w3-button w3-red"
-        })
-        : HTML.div('(this offer cannot be purchased)')
-    ], { className: "w3-section w3-white w3-padding-small" });
-  }).join(''), { className: "w3-section" }) : '';
 }

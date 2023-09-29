@@ -5,6 +5,23 @@ const IAPTIC_CONFIG = {
   apiKey: ''
 }
 
+const APPLE_SUBSCRIPTIONS = [
+  'demo_monthly_basic',
+  'demo_weekly_basic',
+  'monthly_with_intro',
+  'monthy_with_discounts'
+];
+const GOOGLE_SUBSCRIPTIONS = [
+  'subscription1',
+  'subscription2'
+];
+const TEST_SUBSCRIPTIONS = [
+  'test-subscription',
+  // 'test-subscription-active',
+  // CdvPurchase.Test.testProducts.PAID_SUBSCRIPTION,
+  // CdvPurchase.Test.testProducts.PAID_SUBSCRIPTION_ACTIVE,
+];
+
 /**
  * Subscribe with In-App Purchases
  */
@@ -21,20 +38,26 @@ export class SubscriptionService {
   initialize(): Promise<void> {
     // We will initialize the in-app purchase plugin here.
     // We should first register all our products or we cannot use them in the app.
-    this.store.register([
-      CdvPurchase.Test.testProducts.PAID_SUBSCRIPTION,
-      // CdvPurchase.Test.testProducts.PAID_SUBSCRIPTION_ACTIVE,
-      {
+
+    const products = [
+      ...APPLE_SUBSCRIPTIONS.map(id => ({
+        id,
+        platform: CdvPurchase.Platform.APPLE_APPSTORE,
+        type: CdvPurchase.ProductType.PAID_SUBSCRIPTION,
+      } as CdvPurchase.IRegisterProduct)),
+      ...GOOGLE_SUBSCRIPTIONS.map(id => ({
+        id,
         platform: CdvPurchase.Platform.GOOGLE_PLAY,
-        id: 'subscription1',
-        type: CdvPurchase.ProductType.PAID_SUBSCRIPTION
-      },
-      {
-        platform: CdvPurchase.Platform.GOOGLE_PLAY,
-        id: 'subscription2',
-        type: CdvPurchase.ProductType.PAID_SUBSCRIPTION
-      }
-    ]);
+        type: CdvPurchase.ProductType.PAID_SUBSCRIPTION,
+      } as CdvPurchase.IRegisterProduct)),
+      ...TEST_SUBSCRIPTIONS.map(id => ({
+        id,
+        platform: CdvPurchase.Platform.TEST,
+        type: CdvPurchase.ProductType.PAID_SUBSCRIPTION,
+      } as CdvPurchase.IRegisterProduct)),
+    ];
+
+    this.store.register(products);
 
     // Setup the receipt validator service.
     const iaptic = new CdvPurchase.Iaptic(IAPTIC_CONFIG);
@@ -44,18 +67,26 @@ export class SubscriptionService {
     this.setupEventHandlers();
 
     // Load information about products and purchases
-    return this.store.initialize([CdvPurchase.Platform.GOOGLE_PLAY, CdvPurchase.Platform.TEST]).then((value: CdvPurchase.IError[]): void => {
-      this.state.set({
-        ready: true
-      });
-      return;
+    return this.store.initialize([
+      CdvPurchase.Platform.GOOGLE_PLAY,
+      CdvPurchase.Platform.TEST,
+      {
+        platform: CdvPurchase.Platform.APPLE_APPSTORE,
+        options: {
+          needAppReceipt: true,
+          discountEligibilityDeterminer: iaptic.appStoreDiscountEligibilityDeterminer,
+        }
+      }
+    ])
+    .then((value: CdvPurchase.IError[]): void => {
+      this.state.set({ ready: true });
     });
   }
 
   private stateUpdates(): Partial<State> {
 
     // subscription purchases sorted by expiry date
-    const sortedSubscriptions = this.store.verifiedPurchases.concat()
+    const sortedSubscriptions = this.store.verifiedPurchases
     .filter(purchase => {
       const product = this.store.get(purchase.id, purchase.platform);
       return product?.type === CdvPurchase.ProductType.PAID_SUBSCRIPTION;
@@ -151,10 +182,18 @@ export class SubscriptionService {
   }
 
   update() {
-    this.store.update();
+    this.state.set({ isRefreshing: true });
+    this.store.update()
+    .then(() => {
+      this.state.set({ isRefreshing: false });
+    });
   }
 
   restorePurchases() {
-    this.store.restorePurchases();
+    this.state.set({ isRefreshing: true });
+    this.store.restorePurchases()
+    .then(() => {
+      this.state.set({ isRefreshing: false });
+    });
   }
 }

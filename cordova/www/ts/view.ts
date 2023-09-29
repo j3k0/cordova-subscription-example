@@ -13,7 +13,7 @@ export class View {
    */
   render(state: State) {
     const body = document.getElementsByTagName('body')[0];
-    const isLoading = state.isProcessingOrder;
+    const isLoading = state.isProcessingOrder || state.isRefreshing;
     if (isLoading) {
       body.innerHTML = this.loadingPage();
     }

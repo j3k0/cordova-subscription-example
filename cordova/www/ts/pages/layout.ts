@@ -27,8 +27,16 @@ export class Layout {
 
   private static menu(): string {
     return HTML.div([
-      HTML.button('Content', { onclick: "app.open('home')", className: "w3-button" }),
-      HTML.button('Store', { onclick: "app.open('store')", className: "w3-button" })
-    ], { className: 'w3-container w3-black w3-padding-small' });
+      HTML.button('Content', {
+        onclick: () => window.app.open('home'),
+        className: "w3-button"
+      }),
+      HTML.button('Store', {
+        onclick: () => window.app.open('store'),
+        className: "w3-button"
+      })
+    ], {
+      className: 'w3-container w3-black w3-padding-small'
+    });
   }
 }

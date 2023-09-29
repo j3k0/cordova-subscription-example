@@ -22,6 +22,9 @@ export class HomePage {
       return 'You are a premium user. Here is the premium content: 🥳';
     if (!state.ready || state.isVerifying)
       return 'Loading subscription status... Please wait...';
-    return HTML.button("Subscribe to Access", { onclick: "app.open('store')", className: "w3-button w3-red" });
+    return HTML.button("Subscribe to Access", {
+      onclick: () => window.app.open('store'),
+      className: "w3-button w3-red"
+    });
   }
 }

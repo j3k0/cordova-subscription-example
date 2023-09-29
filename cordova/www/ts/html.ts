@@ -2,7 +2,7 @@ export type HTMLContent = ((string | null)[]) | string | null;
 
 export type HTMLAttributes = {
   className?: string;
-  onclick?: string;
+  onclick?: VoidFunction | string;
   src?: string;
   style?: string;
 }
@@ -43,6 +43,11 @@ export class HTML {
   }
 }
 
-function cleanAttribute(s: string): string {
-  return s.replace(/"/g, `'`);
+function cleanAttribute(s: string | VoidFunction): string {
+  if (typeof s === 'string') {
+    return s.replace(/"/g, `'`);
+  }
+  else { // Function
+    return cleanAttribute('(' + s + ')()');
+  }
 }

@@ -9,6 +9,7 @@ export class State {
   ready: boolean = false;
   error: string = '';
   isProcessingOrder: boolean = false;
+  isRefreshing: boolean = false;
   isVerifying: boolean = false;
 
   activeSubscription?: CdvPurchase.VerifiedPurchase;
