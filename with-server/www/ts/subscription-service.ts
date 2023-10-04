@@ -1,26 +1,5 @@
 import { State } from './state.js';
-
-const IAPTIC_CONFIG = {
-  appName: '',
-  apiKey: ''
-}
-
-const APPLE_SUBSCRIPTIONS = [
-  'demo_monthly_basic',
-  'demo_weekly_basic',
-  'monthly_with_intro',
-  'monthy_with_discounts'
-];
-const GOOGLE_SUBSCRIPTIONS = [
-  'subscription1',
-  'subscription2'
-];
-const TEST_SUBSCRIPTIONS = [
-  'test-subscription',
-  // 'test-subscription-active',
-  // CdvPurchase.Test.testProducts.PAID_SUBSCRIPTION,
-  // CdvPurchase.Test.testProducts.PAID_SUBSCRIPTION_ACTIVE,
-];
+import { APPLE_SUBSCRIPTIONS, GOOGLE_SUBSCRIPTIONS, IAPTIC_CONFIG, TEST_SUBSCRIPTIONS } from './configuration.js';
 
 /**
  * Subscribe with In-App Purchases
@@ -30,9 +9,10 @@ export class SubscriptionService {
   private store: CdvPurchase.Store;
   private state: State;
 
-  constructor(store: CdvPurchase.Store, state: State) {
+  constructor(store: CdvPurchase.Store, state: State, applicationUsername: () => (string | undefined)) {
     this.store = store;
     this.state = state;
+    this.store.applicationUsername = applicationUsername;
   }
 
   initialize(): Promise<void> {
@@ -79,7 +59,7 @@ export class SubscriptionService {
       }
     ])
     .then((value: CdvPurchase.IError[]): void => {
-      this.state.set({ ready: true });
+      this.state.set({ subscriptionServiceReady: true });
     });
   }
 
@@ -140,6 +120,7 @@ export class SubscriptionService {
           ...this.stateUpdates()
         });
         receipt.finish();
+        this.verifiedCallback.forEach(callback => callback());
       })
       .unverified(unverified => {
         this.state.set({
@@ -195,5 +176,11 @@ export class SubscriptionService {
     .then(() => {
       this.state.set({ isRefreshing: false });
     });
+  }
+
+  // called when a receipt has been verified with the server.
+  private verifiedCallback: VoidFunction[] = [];
+  onVerified(callback: VoidFunction) {
+    this.verifiedCallback.push(callback);
   }
 }
