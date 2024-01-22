@@ -10,7 +10,8 @@
 
 - Run `npm install` at the root of the project to install cordova locally for the project.
 - From the `without-server/` directory:
-  - `npm run browser` will run the demo in the browser
+  - `cordova platform add browser` to add browser as platform  
+  - `cordova run browser` will run the demo in the browser
 - To run the demo on Android, a few extra steps are required:
   - Update `config.xml` to use your own application id.
   - Update `www/ts/subscription-service.ts` to use your own [iaptic](https://iaptic.com) configuration and product identifiers.
