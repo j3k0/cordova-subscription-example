@@ -19,6 +19,9 @@ export class State {
   /** True when the session is being restored */
   isRestoringSession: boolean = false;
 
+  /** True if the server is waiting for a webhook from iaptic to update the purchase status */
+  isWaitingForWebhook: boolean = false;
+
   error: string = '';
 
   isLogin: boolean = false;

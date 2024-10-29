@@ -5,6 +5,9 @@ import {Layout} from './layout.js';
 export class HomePage {
 
   static render(state: State) {
+    if (state.isWaitingForWebhook) {
+      return Layout.menuLayout(HTML.div('Please wait: PROCESSING YOUR PURCHASES...', { className: "w3-panel w3-orange" }), state);
+    }
     return Layout.menuLayout(HTML.div([
       HTML.div([
         HTML.h2([

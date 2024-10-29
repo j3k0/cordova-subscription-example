@@ -8,7 +8,10 @@ export class StorePage {
    * Display "subscription details" if there an active subscription, "subscribe" page if not.
    */
   static render(state: State) {
-    if (state.subscription?.isActive) {
+    if (state.isWaitingForWebhook) {
+      return Layout.menuLayout(HTML.div('Please wait: PROCESSING YOUR PURCHASES...', { className: "w3-panel w3-orange" }), state);
+    }
+    else if (state.subscription?.isActive) {
       return StorePage.subscriptionDetails(state);
     }
     else if (state.activeSubscription) {

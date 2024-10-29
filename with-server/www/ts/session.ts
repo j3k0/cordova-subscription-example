@@ -21,6 +21,7 @@ export interface ServerSession {
   token: string;
   username: string;
   subscription: ServerSubscription;
+  isWaitingForWebhook: boolean;
 }
 
 interface LoginResponse {
@@ -88,38 +89,59 @@ export class Session {
     });
   }
 
+  hasWebhookWatcher: boolean = false;
+
   update(callback?: (error: SessionError | null) => void) {
-    if (!this.token) {
-      this.session = undefined;
-      this.state.set({ isLogin: true });
-      if (callback) callback(null);
-      return;
-    }
-    CdvPurchase.Utils.ajax<ServerSession>(this.logger, {
-      url: endpoint('/me?token=' + this.token),
-      method: 'GET',
-      success: body => {
-        this.session = body;
-        this.saveToken(body.token);
-        this.state.set({
-          sessionReady: true,
-          isLogin: false,
-          subscription: this.session.subscription,
-          username: this.session.username,
-          isRestoringSession: false,
-        });
+    const doUpdate = (isWebhookWatcher: boolean, callback?: (error: SessionError | null) => void) => {
+      this.logger.debug('update');
+      if (!this.token) {
+        this.session = undefined;
+        this.state.set({ isLogin: true });
         if (callback) callback(null);
-        if (this.onSessionReady) {
-          this.onSessionReady(null);
-          this.onSessionReady = undefined;
-        }
-      },
-      error: (statusCode, statusText, data) => {
-        this.logger.error('/me error: ' + statusText);
-        this.state.set({ sessionReady: true, isLogin: false });
-        if (callback) callback(statusErrors[statusCode] ?? 'NETWORK_ERROR');
-      },
-    });
+        return;
+      }
+      CdvPurchase.Utils.ajax<ServerSession>(this.logger, {
+        url: endpoint('/me?token=' + this.token),
+        method: 'GET',
+        success: body => {
+          this.logger.debug('update: success. ' + JSON.stringify(body, null, 2));
+          this.session = body;
+          this.saveToken(body.token);
+          this.state.set({
+            sessionReady: true,
+            isLogin: false,
+            subscription: this.session.subscription,
+            username: this.session.username,
+            isRestoringSession: false,
+            isWaitingForWebhook: this.session.isWaitingForWebhook,
+          });
+          if (callback) callback(null);
+          if (this.onSessionReady) {
+            this.logger.debug('update: calling onSessionReady');
+            this.onSessionReady(null);
+            this.onSessionReady = undefined;
+          }
+          if (!this.session.isWaitingForWebhook) {
+            this.hasWebhookWatcher = false;
+          }
+          else if (!this.hasWebhookWatcher || isWebhookWatcher) {
+            this.logger.debug('update: pull state until webhook is received...');
+            this.hasWebhookWatcher = true;
+            // reload session data every 2 seconds, until the webhook is received
+            setTimeout(() => {
+              this.logger.debug('update: webhook watcher reloading session.');
+              doUpdate(true);
+            }, 2000);
+          }
+        },
+        error: (statusCode, statusText, data) => {
+          this.logger.error('/me error: ' + statusText);
+          this.state.set({ sessionReady: true, isLogin: false });
+          if (callback) callback(statusErrors[statusCode] ?? 'NETWORK_ERROR');
+        },
+      });
+    };
+    doUpdate(false, callback);
   }
 
   logout() {

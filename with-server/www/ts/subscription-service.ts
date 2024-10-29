@@ -1,5 +1,7 @@
 import { State } from './state.js';
-import { APPLE_SUBSCRIPTIONS, GOOGLE_SUBSCRIPTIONS, IAPTIC_CONFIG, TEST_SUBSCRIPTIONS } from './configuration.js';
+import { APPLE_SUBSCRIPTIONS, GOOGLE_SUBSCRIPTIONS, IAPTIC_CONFIG, TEST_SUBSCRIPTIONS, REMOTE_SERVER } from './configuration.js';
+import { Session } from './session.js';
+function endpoint(path: string) { return REMOTE_SERVER + path; }
 
 /**
  * Subscribe with In-App Purchases
@@ -9,12 +11,16 @@ export class SubscriptionService {
   logger: CdvPurchase.Logger;
   private store: CdvPurchase.Store;
   private state: State;
+  private session: Session;
+  private getUsername: () => (string | undefined);
 
-  constructor(store: CdvPurchase.Store, state: State, applicationUsername: () => (string | undefined)) {
+  constructor(store: CdvPurchase.Store, state: State, session: Session, applicationUsername: () => (string | undefined)) {
     this.logger = new CdvPurchase.Logger({ verbosity: CdvPurchase.LogLevel.DEBUG }, 'SubscriptionService');
     this.store = store;
     this.state = state;
+    this.session = session;
     this.store.applicationUsername = applicationUsername;
+    this.getUsername = applicationUsername;
   }
 
   initialize(): Promise<void> {
@@ -118,11 +124,16 @@ export class SubscriptionService {
         });
       })
       .approved(transaction => {
-        transaction.verify();
+        this.logger.debug('approved: ' + transaction.transactionId + ' for product: ' + transaction.products.map(p => p.id).join(','));
+        this.logger.debug(new Error().stack);
+        if (this.state.isProcessingOrder && !this.state.isVerifying) {
+          this.setPendingWebhook();
+        }
         this.state.set({
           isVerifying: true,
           ...this.stateUpdates()
         });
+        transaction.verify();
       })
       .verified(receipt => {
         this.logger.debug('verified: ' + receipt.id + ' for products: ' + receipt.collection.map(p => p.id).join(','));
@@ -161,6 +172,27 @@ export class SubscriptionService {
       setTimeout(() => {
         this.state.set({ error: `` });
       }, 10000);
+    });
+  }
+
+  private setPendingWebhook() {
+    this.logger.debug('setPendingWebhook');
+    const username = this.getUsername();
+    if (!username) {
+      console.error('Cannot initiate wait: username is undefined');
+      return;
+    }
+
+    CdvPurchase.Utils.ajax(this.store.log, {
+      url: endpoint('/pending-webhooks' + '?token=' + this.session.token),
+      method: 'POST',
+      data: { username },
+      success: (body) => {
+        this.logger.debug('setPendingWebhook: success');
+      },
+      error: (statusCode, statusText) => {
+        this.logger.debug('setPendingWebhook: error: ' + statusCode + ' ' + statusText);
+      },
     });
   }
 

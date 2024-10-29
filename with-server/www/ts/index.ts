@@ -22,7 +22,7 @@ class App {
     this.view = new View();
     this.state = new State(state => this.view.render(state));
     this.session = new Session(this.state);
-    this.subscriptionService = new SubscriptionService(CdvPurchase.store, this.state, () => this.session.session?.username);
+    this.subscriptionService = new SubscriptionService(CdvPurchase.store, this.state, this.session, () => this.session.session?.username);
     this.dynamicContent = new DynamicContent(this.state, this.session);
     this.logger = new CdvPurchase.Logger({ verbosity: CdvPurchase.LogLevel.DEBUG }, 'App');
   }
