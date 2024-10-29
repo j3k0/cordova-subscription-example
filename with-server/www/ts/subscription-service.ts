@@ -6,16 +6,19 @@ import { APPLE_SUBSCRIPTIONS, GOOGLE_SUBSCRIPTIONS, IAPTIC_CONFIG, TEST_SUBSCRIP
  */
 export class SubscriptionService {
 
+  logger: CdvPurchase.Logger;
   private store: CdvPurchase.Store;
   private state: State;
 
   constructor(store: CdvPurchase.Store, state: State, applicationUsername: () => (string | undefined)) {
+    this.logger = new CdvPurchase.Logger({ verbosity: CdvPurchase.LogLevel.DEBUG }, 'SubscriptionService');
     this.store = store;
     this.state = state;
     this.store.applicationUsername = applicationUsername;
   }
 
   initialize(): Promise<void> {
+    this.logger.debug('initialize');
     // We will initialize the in-app purchase plugin here.
     // We should first register all our products or we cannot use them in the app.
 
@@ -59,11 +62,14 @@ export class SubscriptionService {
       }
     ])
     .then((value: CdvPurchase.IError[]): void => {
+      this.logger.debug('initialize: success');
       this.state.set({ subscriptionServiceReady: true });
     });
   }
 
   private stateUpdates(): Partial<State> {
+
+    this.logger.debug('stateUpdates');
 
     // subscription purchases sorted by expiry date
     const sortedSubscriptions = this.store.verifiedPurchases
@@ -87,20 +93,25 @@ export class SubscriptionService {
 
   private setupEventHandlers() {
 
+    this.logger.debug('setupEventHandlers');
+
     this.store.when()
       .productUpdated(() => {
+        this.logger.debug('productUpdated');
         this.state.set({
           products: this.store.products,
           ...this.stateUpdates()
         });
       })
       .receiptsReady(() => {
+        this.logger.debug('receiptsReady');
         this.state.set({
           transactions: this.store.localTransactions,
           ...this.stateUpdates()
         });
       })
       .receiptUpdated(receipt => {
+        this.logger.debug('receiptUpdated: ' + receipt.platform + ' for products: ' + receipt.transactions.map(t => t.products.map(p => p.id).join(',')).join(';'));
         this.state.set({
           transactions: this.store.localTransactions,
           ...this.stateUpdates()
@@ -114,6 +125,7 @@ export class SubscriptionService {
         });
       })
       .verified(receipt => {
+        this.logger.debug('verified: ' + receipt.id + ' for products: ' + receipt.collection.map(p => p.id).join(','));
         this.state.set({
           purchases: this.store.verifiedPurchases,
           isVerifying: false,
@@ -123,6 +135,7 @@ export class SubscriptionService {
         this.verifiedCallback.forEach(callback => callback());
       })
       .unverified(unverified => {
+        this.logger.debug('unverified');
         this.state.set({
           isProcessingOrder: false,
           isVerifying: false,
@@ -130,6 +143,7 @@ export class SubscriptionService {
         });
       })
       .finished(transaction => {
+        this.logger.debug('finished');
         this.state.set({
           isProcessingOrder: false,
           ...this.stateUpdates()
@@ -138,6 +152,7 @@ export class SubscriptionService {
 
     // Show errors for 10 seconds.
     this.store.error(error => {
+      this.logger.debug('error: ' + error.code + ': ' + error.message);
       if (error.code === CdvPurchase.ErrorCode.PAYMENT_CANCELLED) {
         console.log('The user cancelled the purchase flow.');
         return;
@@ -150,6 +165,7 @@ export class SubscriptionService {
   }
 
   subscribe(platform: CdvPurchase.Platform, productId: string, offerId: string) {
+    this.logger.debug('subscribe: ' + platform + ' ' + productId + ' ' + offerId);
     this.state.set({ isProcessingOrder: true, error: '' });
     this.store.get(productId, platform)?.getOffer(offerId)?.order()
       .then(error => {
@@ -163,6 +179,7 @@ export class SubscriptionService {
   }
 
   update() {
+    this.logger.debug('update');
     this.state.set({ isRefreshing: true });
     this.store.update()
     .then(() => {
@@ -171,6 +188,7 @@ export class SubscriptionService {
   }
 
   restorePurchases() {
+    this.logger.debug('restorePurchases');
     this.state.set({ isRefreshing: true });
     this.store.restorePurchases()
     .then(() => {
@@ -181,6 +199,7 @@ export class SubscriptionService {
   // called when a receipt has been verified with the server.
   private verifiedCallback: VoidFunction[] = [];
   onVerified(callback: VoidFunction) {
+    this.logger.debug('register onVerified handler');
     this.verifiedCallback.push(callback);
   }
 }

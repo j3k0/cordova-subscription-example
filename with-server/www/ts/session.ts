@@ -45,9 +45,11 @@ export class Session {
     this.restoreToken();
     if (this.token) {
       this.state.set({ isRestoringSession: true });
+      this.logger.debug('initialize: ' + this.token);
       this.update(callback);
     }
     else {
+      this.logger.debug('initialize: no token');
       this.onSessionReady = callback;
     }
   }
@@ -67,12 +69,14 @@ export class Session {
   }
 
   login(username: string, callback?: (error: SessionError | null) => void) {
+    this.logger.debug('login: ' + username);
     this.state.set({ isLogin: true, username });
     CdvPurchase.Utils.ajax<LoginResponse>(this.logger, {
       url: endpoint('/login'),
       method: 'POST',
       data: { username },
       success: body => {
+        this.logger.debug('/login success: ' + body.token);
         this.saveToken(body.token);
         this.update(callback);
       },
@@ -119,6 +123,7 @@ export class Session {
   }
 
   logout() {
+    this.logger.debug('logout');
     this.saveToken(undefined);
     this.session = undefined;
     this.state.set({ sessionReady: false, subscription: undefined, username: undefined });

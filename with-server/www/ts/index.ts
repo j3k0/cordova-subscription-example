@@ -16,6 +16,7 @@ class App {
   subscriptionService: SubscriptionService;
   session: Session;
   dynamicContent: DynamicContent;
+  logger: CdvPurchase.Logger;
 
   constructor() {
     this.view = new View();
@@ -23,24 +24,30 @@ class App {
     this.session = new Session(this.state);
     this.subscriptionService = new SubscriptionService(CdvPurchase.store, this.state, () => this.session.session?.username);
     this.dynamicContent = new DynamicContent(this.state, this.session);
+    this.logger = new CdvPurchase.Logger({ verbosity: CdvPurchase.LogLevel.DEBUG }, 'App');
   }
 
   initialize() {
     this.view.render(this.state);
+    this.logger.debug('initialize');
     this.session.initialize(error => {
-      console.log('session ready');
+      this.logger.debug('session ready');
       this.dynamicContent.reloadContent();
       this.subscriptionService.initialize();
-      this.subscriptionService.onVerified(() => this.session.update());
+      this.subscriptionService.onVerified(() => {
+        this.logger.debug('subscriptionService.onVerified');
+        this.session.update();
+      });
     });
   }
 
   subscribe(platform: CdvPurchase.Platform, productId: string, offerId: string) {
+    this.logger.debug('subscribe: ' + platform + ' ' + productId + ' ' + offerId);
     this.subscriptionService.subscribe(platform, productId, offerId);
   }
 
   open(page: Page) {
-
+    this.logger.debug('open: ' + page);
     // refresh to-be opened page content
     switch (page) {
       case 'home':
